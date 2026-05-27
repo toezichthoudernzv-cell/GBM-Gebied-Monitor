@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GBM Gebied Monitor — Eemshaven</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --blauw: #003d6e;
+    --groen: #006b3c;
+    --lichtblauw: #0077b6;
+    --accent: #e8a000;
+    --rood: #c0392b;
+    --bg: #f4f6f8;
+    --wit: #ffffff;
+    --tekst: #1a2332;
+    --grijs: #6b7a8d;
+    --rand: #d0d8e4;
+    --tab-bg: #e8ecf2;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--tekst);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--blauw);
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  header .subtitel {
+    font-size: 11px;
+    opacity: 0.7;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--blauw);
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+
+  .tab.actief {
+    color: white;
+    border-bottom-color: var(--accent);
+  }
+
+  .pagina { display: none; padding: 16px; }
+  .pagina.actief { display: block; }
+
+  /* ===== KAARTEN ===== */
+  .kaart {
+    background: var(--wit);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border: 1px solid var(--rand);
+  }
+
+  .kaart-titel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--grijs);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ===== DATUM/TIJD INVOER ===== */
+  .veld-rij {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .veld-rij.drie {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .veld-groep {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .veld-groep label {
+    font-size: 11px;
+    color: var(--grijs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input, select, textarea {
+    border: 1.5px solid var(--rand);
+    border-radius: 7px;
+    padding: 9px 11px;
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--tekst);
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--lichtblauw);
+    background: white;
+  }
+
+  textarea { resize: vertical; min-height: 70px; }
+
+  /* ===== KNOPPEN ===== */
+  .knop {
+    border: none;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .knop-primair { background: var(--blauw); color: white; }
+  .knop-primair:hover { background: var(--lichtblauw); }
+  .knop-groen { background: var(--groen); color: white; }
+  .knop-groen:hover { background: #008a4e; }
+  .knop-accent { background: var(--accent); color: white; }
+  .knop-accent:hover { background: #c98a00; }
+  .knop-rood { background: var(--rood); color: white; }
+  .knop-rood:hover { background: #a93226; }
+  .knop-licht { background: var(--tab-bg); color: var(--tekst); }
+  .knop-licht:hover { background: var(--rand); }
+  .knop-vol { width: 100%; justify-content: center; }
+
+  .knop-rij {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* ===== TELLERS ===== */
+  .teller-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .teller-blok {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    border: 1.5px solid var(--rand);
+  }
+
+  .teller-getal {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--blauw);
+    line-height: 1;
+  }
+
+  .teller-label {
+    font-size: 11px;
+    color: var(--grijs);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  .teller-plus-min {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .pm-knop {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+
+  .pm-plus { background: var(--blauw); color: white; }
+  .pm-plus:hover { background: var(--lichtblauw); }
+  .pm-min { background: var(--tab-bg); color: var(--tekst); }
+  .pm-min:hover { background: var(--rand); }
+
+  /* ===== WAARNEMINGEN LIJST ===== */
+  .item {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-left: 4px solid var(--lichtblauw);
+    position: relative;
+  }
+
+  .item.spuit { border-left-color: var(--rood); }
+  .item.erf { border-left-color: var(--groen); }
+  .item.overig { border-left-color: var(--accent); }
+  .item.surveillance { border-left-color: var(--blauw); }
+
+  .item-type {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+
+  .item.spuit .item-type { color: var(--rood); }
+  .item.erf .item-type { color: var(--groen); }
+  .item.overig .item-type { color: var(--accent); }
+  .item.surveillance .item-type { color: var(--blauw); }
+
+  .item-inhoud { font-size: 13px; line-height: 1.5; }
+  .item-tijd { font-size: 11px; color: var(--grijs); margin-top: 4px; font-family: 'IBM Plex Mono', monospace; }
+
+  .item-verwijder {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--grijs);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .item-verwijder:hover { background: var(--rand); color: var(--rood); }
+
+  /* ===== DAG OVERZICHT ===== */
+  .dag-blok {
+    background: var(--wit);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    border: 1px solid var(--rand);
+  }
+
+  .dag-header {
+    background: var(--blauw);
+    color: white;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .dag-header-links { font-size: 13px; font-weight: 600; }
+  .dag-header-rechts { font-size: 11px; opacity: 0.8; font-family: 'IBM Plex Mono', monospace; }
+
+  .dag-body { padding: 12px 14px; }
+
+  .dag-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .dag-stat {
+    text-align: center;
+    background: var(--bg);
+    border-radius: 7px;
+    padding: 8px 4px;
+  }
+
+  .dag-stat-getal {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--blauw);
+  }
+
+  .dag-stat-label { font-size: 10px; color: var(--grijs); }
+
+  /* ===== BADGES ===== */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge-rood { background: #fdecea; color: var(--rood); }
+  .badge-groen { background: #e8f5ed; color: var(--groen); }
+  .badge-blauw { background: #e3f0fb; color: var(--blauw); }
+  .badge-oranje { background: #fff3cd; color: #856404; }
+
+  /* ===== TOTALEN DASHBOARD ===== */
+  .totaal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .totaal-kaart {
+    background: var(--wit);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    border: 1px solid var(--rand);
+  }
+
+  .totaal-getal {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--blauw);
+  }
+
+  .totaal-label { font-size: 12px; color: var(--grijs); margin-top: 4px; }
+
+  /* ===== BOEREN LIJST ===== */
+  .boer-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rand);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .boer-item:hover { background: var(--bg); }
+  .boer-item:last-child { border-bottom: none; }
+
+  .route-knop {
+    background: var(--lichtblauw);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .route-knop:hover { background: var(--blauw); }
+
+  .boer-naam { font-size: 13px; font-weight: 500; flex: 1; }
+  .boer-adres { font-size: 11px; color: var(--grijs); }
+
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-grijs { background: #c0c8d4; }
+  .dot-groen { background: #27ae60; }
+  .dot-oranje { background: #e67e22; }
+  .dot-rood { background: var(--rood); }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-end;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--wit);
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  .modal-titel {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sluit-knop {
+    background: var(--tab-bg);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== RAPPORTAGE ===== */
+  .rapport-sectie { margin-bottom: 20px; }
+  .rapport-sectie h3 { font-size: 13px; color: var(--grijs); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+
+  .rapport-rij {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--rand);
+    font-size: 13px;
+  }
+
+  .rapport-rij:last-child { border-bottom: none; }
+  .rapport-waarde { font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--blauw); }
+
+  /* ===== MELDING ===== */
+  .melding {
+    background: #e8f5ed;
+    border: 1px solid #27ae60;
+    color: var(--groen);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  .leeg-tekst {
+    text-align: center;
+    color: var(--grijs);
+    font-size: 13px;
+    padding: 20px;
+    font-style: italic;
+  }
+
+  .scheidslijn { border: none; border-top: 1px solid var(--rand); margin: 12px 0; }
+
+  /* iOS fix */
+  select { -webkit-appearance: none; appearance: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>GBM Gebied Monitor</h1>
+    <div class="subtitel">Eemshaven · Remko Meijer · NZV</div>
+  </div>
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;opacity:0.7;" id="huidigeDatum"></div>
+</header>
+
+<div class="tabs">
+  <div class="tab actief" onclick="toonPagina('dag')">📋 Dag</div>
+  <div class="tab" onclick="toonPagina('loggen')">➕ Log</div>
+  <div class="tab" onclick="toonPagina('overzicht')">📊 Overzicht</div>
+  <div class="tab" onclick="toonPagina('boeren')">👤 Boeren</div>
+  <div class="tab" onclick="toonPagina('rapport')">📄 Rapport</div>
+</div>
+
+<!-- ===== PAGINA: DAG ===== -->
+<div class="pagina actief" id="pagina-dag">
+  <div class="kaart">
+    <div class="kaart-titel">⏱ Dagregistratie</div>
+    <div class="veld-rij">
+      <div class="veld-groep">
+        <label>Datum</label>
+        <input type="date" id="dag-datum">
+      </div>
+      <div class="veld-groep">
+        <label>Surveillanceuren</label>
+        <input type="number" id="dag-uren" placeholder="0.0" step="0.5" min="0">
+      </div>
+    </div>
+    <div class="veld-rij drie">
+      <div class="veld-groep">
+        <label>Start tijd</label>
+        <input type="time" id="dag-start">
+      </div>
+      <div class="veld-groep">
+        <label>Eind tijd</label>
+        <input type="time" id="dag-eind">
+      </div>
+      <div class="veld-groep">
+        <label>Km gereden</label>
+        <input type="number" id="dag-km" placeholder="0 (automatisch of handmatig)" min="0" oninput="kmHandmatig()">
+      </div>
+    </div>
+    <div class="veld-groep" style="margin-bottom:12px;">
+      <label>Weersomstandigheden</label>
+      <select id="dag-weer">
+        <option value="">— selecteer —</option>
+        <option>Zonnig</option>
+        <option>Bewolkt</option>
+        <option>Wisselvallig</option>
+        <option>Regen</option>
+        <option>Wind</option>
+        <option>Droog en windig (spuitrisico)</option>
+      </select>
+    </div>
+    <div class="veld-groep" style="margin-bottom:12px;">
+      <label>Notitie dag</label>
+      <textarea id="dag-notitie" placeholder="Algemene opmerkingen over de dag..."></textarea>
+    </div>
+    <button class="knop knop-primair knop-vol" onclick="slaaDagOp()">💾 Dag opslaan</button>
+  </div>
+
+  <div class="kaart" id="gps-kaart">
+    <div class="kaart-titel">📍 GPS Km-tracker</div>
+    <div id="gps-status" style="font-size:13px;color:var(--grijs);margin-bottom:10px;">Tracker staat uit</div>
+    <div class="knop-rij">
+      <button class="knop knop-groen" id="gps-start-knop" onclick="startGPS()">▶ Start tracking</button>
+      <button class="knop knop-rood" id="gps-stop-knop" onclick="stopGPS()" style="display:none">⏹ Stop tracking</button>
+      <button class="knop knop-licht" onclick="resetGPSdag()">↺ Reset dag</button>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--grijs);">
+      💡 Druk op Start als je vertrekt, Stop als je klaar bent. Km worden automatisch opgeslagen.
+    </div>
+  </div>
+
+  <div class="kaart">
+    <div class="kaart-titel">📊 Tellingen vandaag</div>
+    <div class="teller-grid">
+      <div class="teller-blok">
+        <div class="teller-getal" id="tel-spuit">0</div>
+        <div class="teller-label">💧 Spuitcontroles</div>
+        <div class="teller-plus-min">
+          <button class="pm-knop pm-min" onclick="telAanpassen('spuit', -1)">−</button>
+          <button class="pm-knop pm-plus" onclick="telAanpassen('spuit', 1)">+</button>
+        </div>
+      </div>
+      <div class="teller-blok">
+        <div class="teller-getal" id="tel-erf">0</div>
+        <div class="teller-label">🏠 Erfcontroles</div>
+        <div class="teller-plus-min">
+          <button class="pm-knop pm-min" onclick="telAanpassen('erf', -1)">−</button>
+          <button class="pm-knop pm-plus" onclick="telAanpassen('erf', 1)">+</button>
+        </div>
+      </div>
+      <div class="teller-blok">
+        <div class="teller-getal" id="tel-overig">0</div>
+        <div class="teller-label">📝 Overige controles</div>
+        <div class="teller-plus-min">
+          <button class="pm-knop pm-min" onclick="telAanpassen('overig', -1)">−</button>
+          <button class="pm-knop pm-plus" onclick="telAanpassen('overig', 1)">+</button>
+        </div>
+      </div>
+      <div class="teller-blok">
+        <div class="teller-getal" id="tel-uren">0</div>
+        <div class="teller-label">⏱ Uren gebied</div>
+      </div>
+      <div class="teller-blok">
+        <div class="teller-getal" id="tel-km">0</div>
+        <div class="teller-label">🚗 Km gereden</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kaart">
+    <div class="kaart-titel">📋 Waarnemingen vandaag</div>
+    <div id="dag-items-lijst">
+      <div class="leeg-tekst">Nog geen waarnemingen gelogd vandaag</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGINA: LOGGEN ===== -->
+<div class="pagina" id="pagina-loggen">
+  <div id="melding-opgeslagen" class="melding">✅ Waarneming opgeslagen!</div>
+
+  <div class="kaart">
+    <div class="kaart-titel">➕ Nieuwe registratie</div>
+    <div class="veld-rij">
+      <div class="veld-groep">
+        <label>Type</label>
+        <select id="log-type" onchange="typeGewijzigd()">
+          <option value="spuit">💧 Spuitcontrole</option>
+          <option value="erf">🏠 Erfcontrole</option>
+          <option value="overig">📝 Overige controle</option>
+          <option value="surveillance">👁 Waarneming</option>
+        </select>
+      </div>
+      <div class="veld-groep">
+        <label>Uitkomst</label>
+        <select id="log-uitkomst">
+          <option value="akkoord">✅ Akkoord</option>
+          <option value="overtreding">❌ Overtreding</option>
+          <option value="aangetroffen">👁 Aangetroffen</option>
+          <option value="nader_onderzoek">🔍 Nader onderzoek</option>
+          <option value="geen_toegang">🚫 Geen toegang</option>
+        </select>
+      </div>
+    </div>
+    <div class="veld-rij">
+      <div class="veld-groep">
+        <label>Datum</label>
+        <input type="date" id="log-datum">
+      </div>
+      <div class="veld-groep">
+        <label>Tijd</label>
+        <input type="time" id="log-tijd">
+      </div>
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:10px;" id="veld-boer">
+      <label>Betrokken boer / eigenaar</label>
+      <select id="log-boer">
+        <option value="">— geen / onbekend —</option>
+      </select>
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:10px;" id="veld-locatie">
+      <label>Locatie / perceel</label>
+      <input type="text" id="log-locatie" placeholder="Adres, perceel of omschrijving...">
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:10px;" id="veld-gewas">
+      <label>Gewas</label>
+      <select id="log-gewas">
+        <option value="">— onbekend —</option>
+        <option>Aardappelen</option>
+        <option>Graan (tarwe/gerst)</option>
+        <option>Suikerbieten</option>
+        <option>Uien</option>
+        <option>Groenten</option>
+        <option>Graszaad</option>
+        <option>Maïs</option>
+        <option>Grasland</option>
+        <option>Anders</option>
+      </select>
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:10px;" id="veld-middel">
+      <label>Middel (indien bekend)</label>
+      <input type="text" id="log-middel" placeholder="Naam middel of type...">
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:12px;">
+      <label>Omschrijving / opmerking</label>
+      <textarea id="log-omschrijving" placeholder="Wat heb je waargenomen of gecontroleerd?"></textarea>
+    </div>
+
+    <button class="knop knop-groen knop-vol" onclick="slaWaarnemingOp()">💾 Opslaan</button>
+  </div>
+</div>
+
+<!-- ===== PAGINA: OVERZICHT ===== -->
+<div class="pagina" id="pagina-overzicht">
+  <div class="totaal-grid">
+    <div class="totaal-kaart">
+      <div class="totaal-getal" id="tot-dagen">0</div>
+      <div class="totaal-label">Dagen in gebied</div>
+    </div>
+    <div class="totaal-kaart">
+      <div class="totaal-getal" id="tot-uren">0</div>
+      <div class="totaal-label">Uren surveillance</div>
+    </div>
+    <div class="totaal-kaart">
+      <div class="totaal-getal" id="tot-spuit">0</div>
+      <div class="totaal-label">💧 Spuitcontroles</div>
+    </div>
+    <div class="totaal-kaart">
+      <div class="totaal-getal" id="tot-erf">0</div>
+      <div class="totaal-label">🏠 Erfcontroles</div>
+    </div>
+    <div class="totaal-kaart">
+      <div class="totaal-getal" id="tot-overig">0</div>
+      <div class="totaal-label">📝 Overige controles</div>
+    </div>
+    <div class="totaal-kaart">
+      <div class="totaal-getal" id="tot-overtredingen">0</div>
+      <div class="totaal-label">❌ Overtredingen</div>
+    </div>
+    <div class="totaal-kaart">
+      <div class="totaal-getal" id="tot-km">0</div>
+      <div class="totaal-label">🚗 Km gereden</div>
+    </div>
+  </div>
+
+  <div id="dagen-lijst"></div>
+</div>
+
+<!-- ===== PAGINA: BOEREN ===== -->
+<div class="pagina" id="pagina-boeren">
+  <div class="kaart">
+    <div class="kaart-titel">👤 Eigenaren in gebied (Remko)</div>
+    <input type="text" id="boer-zoek" placeholder="🔍 Zoeken op naam of adres..." style="margin-bottom:12px;" oninput="filterBoeren()">
+    <div id="boeren-lijst" style="margin:-4px -4px;"></div>
+  </div>
+</div>
+
+<!-- ===== PAGINA: RAPPORT ===== -->
+<div class="pagina" id="pagina-rapport">
+  <div class="kaart">
+    <div class="kaart-titel">📄 Rapportage genereren</div>
+    <div class="veld-rij">
+      <div class="veld-groep">
+        <label>Van datum</label>
+        <input type="date" id="rap-van">
+      </div>
+      <div class="veld-groep">
+        <label>Tot datum</label>
+        <input type="date" id="rap-tot">
+      </div>
+    </div>
+    <button class="knop knop-accent knop-vol" onclick="genereerRapport()" style="margin-bottom:8px;">📄 Toon rapportage</button>
+    <button class="knop knop-primair knop-vol" onclick="printRapport()">🖨 Afdrukken / PDF</button>
+  </div>
+
+  <div id="rapport-inhoud"></div>
+</div>
+
+<!-- ===== BOER MODAL ===== -->
+<div class="modal-overlay" id="boer-modal">
+  <div class="modal">
+    <div class="modal-titel">
+      <span id="modal-naam">Naam</span>
+      <button class="sluit-knop" onclick="sluitModal()">✕</button>
+    </div>
+    <div id="modal-inhoud"></div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const BOEREN = [
+  {naam:"A. Dijksterhuis", adres:"Langelandsterweg 123", postcode:"9982 TZ", plaats:"Uithuizermeeden"},
+  {naam:"A.A. Elzes", adres:"Hooilandseweg 149", postcode:"9983 PD", plaats:"Roodeschool"},
+  {naam:"A.B. Ockels", adres:"Het Hout 8", postcode:"9723 LA", plaats:"Groningen"},
+  {naam:"B.E. Oosterhuis", adres:"Dwarsweg 18", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"C.J.E. Dijksterhuis", adres:"Dwarsweg 3", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"C.P. Meeuwes", adres:"Dwarsweg 16", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"E. Spa", adres:"Langelandsterweg 121", postcode:"9982 TZ", plaats:"Uithuizermeeden"},
+  {naam:"Enexis Netbeheer B.V.", adres:"Postbus 856", postcode:"5201 AW", plaats:"'s-Hertogenbosch"},
+  {naam:"GoDo B.V.", adres:"Hefswalsterweg 4", postcode:"9982 TR", plaats:"Uithuizermeeden"},
+  {naam:"Groningen Seaports N.V.", adres:"Postbus 20004", postcode:"9930 PA", plaats:"Delfzijl"},
+  {naam:"H. Doornbos", adres:"Heuvelderij 1", postcode:"9982 TX", plaats:"Uithuizermeeden"},
+  {naam:"H.A.B. Wiertsema", adres:"Dwarsweg 28", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"J. Doornbos", adres:"Heuvelderij 1", postcode:"9982 TX", plaats:"Uithuizermeeden"},
+  {naam:"J. Noorloos", adres:"Klaas Wiersumsweg 2", postcode:"9984 XJ", plaats:"Oudeschip"},
+  {naam:"J.A. Bos B.V.", adres:"Lutjewegje 3", postcode:"9982 TT", plaats:"Uithuizermeeden"},
+  {naam:"J.A. Goense", adres:"Hooilandseweg 1", postcode:"9982 CA", plaats:"Uithuizermeeden"},
+  {naam:"J.G. Woltjer", adres:"Heuvelderij 5", postcode:"9982 TX", plaats:"Uithuizermeeden"},
+  {naam:"J.J. Klein", adres:"Dwarsweg 24", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"J.M.N. van Mastwijk", adres:"Dwarsweg 26", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"J.R. Kolhorn", adres:"Dwarsweg 2", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"J.U. Berghuis", adres:"Hoofdstraat 75", postcode:"9982 AB", plaats:"Uithuizermeeden"},
+  {naam:"K.J. Klein", adres:"Dwarsweg 12", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"K.J. Kolhorn", adres:"Polderdwarsweg 1", postcode:"9984 XK", plaats:"Oudeschip"},
+  {naam:"R.B. Rijzebol", adres:"Dwarsweg 1", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"R.J. Groenveld", adres:"Dwarsweg 12", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"Stichting Poldermolencomplex De Goliath", adres:"Prinsenhof 16", postcode:"9983 PJ", plaats:"Roodeschool"},
+  {naam:"T.L.D. Klein", adres:"Dwarsweg 22", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"U. Doornbos", adres:"Heuvelderij 7", postcode:"9982 TX", plaats:"Uithuizermeeden"},
+  {naam:"V. Veening", adres:"Dwarsweg 6", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"W.C.J.M. Klijn", adres:"Hefswalsterweg 33", postcode:"9982 TP", plaats:"Uithuizermeeden"},
+  {naam:"W.J. Dekker", adres:"Heuvelderij 3", postcode:"9982 TX", plaats:"Uithuizermeeden"},
+  {naam:"W.J. Klijn", adres:"Dwarsweg 14", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"W.J. Oosterhuis", adres:"Dwarsweg 30", postcode:"9982 TW", plaats:"Uithuizermeeden"},
+  {naam:"Waterschap Noorderzijlvest", adres:"Postbus 18", postcode:"9700 AA", plaats:"Groningen"},
+  {naam:"gemeente Het Hogeland", adres:"Postbus 26", postcode:"9980 AA", plaats:"Uithuizen"}
+];
+
+// State
+let data = JSON.parse(localStorage.getItem('gbm_data') || '{"dagen":[],"waarnemingen":[]}');
+let huidigeDatum = vandaag();
+
+function vandaag() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function tijdNu() {
+  return new Date().toTimeString().slice(0,5);
+}
+
+function sla() {
+  localStorage.setItem('gbm_data', JSON.stringify(data));
+}
+
+function getDag(datum) {
+  return data.dagen.find(d => d.datum === datum);
+}
+
+function getOfMaakDag(datum) {
+  let dag = getDag(datum);
+  if (!dag) {
+    dag = {datum, start:'', eind:'', uren:0, weer:'', notitie:'', spuit:0, erf:0, overig:0};
+    data.dagen.push(dag);
+    data.dagen.sort((a,b) => b.datum.localeCompare(a.datum));
+  }
+  return dag;
+}
+
+// ===== INIT =====
+function init() {
+  document.getElementById('huidigeDatum').textContent = new Date().toLocaleDateString('nl-NL', {weekday:'short', day:'numeric', month:'short'});
+
+  // Vul datum velden
+  const v = vandaag();
+  document.getElementById('dag-datum').value = v;
+  document.getElementById('log-datum').value = v;
+  document.getElementById('log-tijd').value = tijdNu();
+
+  // Laad bestaande dagdata
+  laadDagFormulier(v);
+
+  // Boeren in select
+  const sel = document.getElementById('log-boer');
+  BOEREN.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.naam;
+    opt.textContent = b.naam;
+    sel.appendChild(opt);
+  });
+
+  // Boeren lijst
+  renderBoerenLijst(BOEREN);
+
+  // Overzicht tellers
+  updateTellers();
+  renderDagenLijst();
+
+  // Rapport datums
+  document.getElementById('rap-van').value = v;
+  document.getElementById('rap-tot').value = v;
+}
+
+// ===== DAG FORMULIER =====
+document.getElementById('dag-datum').addEventListener('change', function() {
+  huidigeDatum = this.value;
+  laadDagFormulier(huidigeDatum);
+  document.getElementById('log-datum').value = huidigeDatum;
+  updateDagTellers();
+  renderDagItems();
+});
+
+function laadDagFormulier(datum) {
+  const dag = getDag(datum);
+  document.getElementById('dag-start').value = dag ? dag.start : '';
+  document.getElementById('dag-eind').value = dag ? dag.eind : '';
+  document.getElementById('dag-uren').value = dag ? dag.uren : '';
+  document.getElementById('dag-km').value = dag ? dag.km : '';
+  document.getElementById('dag-weer').value = dag ? dag.weer : '';
+  // Sync GPS km teller met opgeslagen waarde
+  gpsKmDag = dag ? (dag.km || 0) : 0;
+  if (!gpsActief) {
+    document.getElementById('gps-status').textContent = dag && dag.km > 0 
+      ? '⏹ Laatste rit: ' + dag.km + ' km opgeslagen' 
+      : 'Tracker staat uit';
+  }
+  document.getElementById('dag-notitie').value = dag ? dag.notitie : '';
+  updateDagTellers();
+  renderDagItems();
+}
+
+function slaaDagOp() {
+  const datum = document.getElementById('dag-datum').value;
+  const dag = getOfMaakDag(datum);
+  dag.start = document.getElementById('dag-start').value;
+  dag.eind = document.getElementById('dag-eind').value;
+  dag.uren = parseFloat(document.getElementById('dag-uren').value) || 0;
+  dag.km = parseFloat(document.getElementById('dag-km').value) || 0;
+  dag.weer = document.getElementById('dag-weer').value;
+  dag.notitie = document.getElementById('dag-notitie').value;
+  sla();
+  updateDagTellers();
+  toonMelding('melding-opgeslagen');
+}
+
+function telAanpassen(type, delta) {
+  const datum = document.getElementById('dag-datum').value;
+  const dag = getOfMaakDag(datum);
+  dag[type] = Math.max(0, (dag[type] || 0) + delta);
+  sla();
+  updateDagTellers();
+  updateTellers();
+  renderDagenLijst();
+}
+
+function updateDagTellers() {
+  const datum = document.getElementById('dag-datum').value;
+  const dag = getDag(datum);
+  document.getElementById('tel-spuit').textContent = dag ? dag.spuit : 0;
+  document.getElementById('tel-erf').textContent = dag ? dag.erf : 0;
+  document.getElementById('tel-overig').textContent = dag ? dag.overig : 0;
+  document.getElementById('tel-uren').textContent = dag ? dag.uren : 0;
+  document.getElementById('tel-km').textContent = dag ? (dag.km || 0) : 0;
+}
+
+// ===== LOGGEN =====
+function typeGewijzigd() {
+  // Altijd zichtbaar voor nu
+}
+
+function slaWaarnemingOp() {
+  const w = {
+    id: Date.now(),
+    datum: document.getElementById('log-datum').value,
+    tijd: document.getElementById('log-tijd').value,
+    type: document.getElementById('log-type').value,
+    uitkomst: document.getElementById('log-uitkomst').value,
+    boer: document.getElementById('log-boer').value,
+    locatie: document.getElementById('log-locatie').value,
+    gewas: document.getElementById('log-gewas').value,
+    middel: document.getElementById('log-middel').value,
+    omschrijving: document.getElementById('log-omschrijving').value
+  };
+
+  data.waarnemingen.push(w);
+  data.waarnemingen.sort((a,b) => (b.datum+b.tijd).localeCompare(a.datum+a.tijd));
+
+  // Automatisch teller ophogen
+  const dag = getOfMaakDag(w.datum);
+  if (w.type === 'spuit') dag.spuit = (dag.spuit||0)+1;
+  else if (w.type === 'erf') dag.erf = (dag.erf||0)+1;
+  else if (w.type === 'overig') dag.overig = (dag.overig||0)+1;
+
+  sla();
+  updateDagTellers();
+  updateTellers();
+  renderDagenLijst();
+  renderDagItems();
+
+  // Reset form
+  document.getElementById('log-locatie').value = '';
+  document.getElementById('log-middel').value = '';
+  document.getElementById('log-omschrijving').value = '';
+  document.getElementById('log-boer').value = '';
+  document.getElementById('log-gewas').value = '';
+  document.getElementById('log-tijd').value = tijdNu();
+
+  toonMelding('melding-opgeslagen');
+}
+
+function toonMelding(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 2500);
+}
+
+// ===== DAG ITEMS =====
+function renderDagItems() {
+  const datum = document.getElementById('dag-datum').value;
+  const items = data.waarnemingen.filter(w => w.datum === datum);
+  const el = document.getElementById('dag-items-lijst');
+  if (!items.length) {
+    el.innerHTML = '<div class="leeg-tekst">Nog geen waarnemingen gelogd vandaag</div>';
+    return;
+  }
+  el.innerHTML = items.map(w => `
+    <div class="item ${w.type}">
+      <button class="item-verwijder" onclick="verwijderItem(${w.id})">✕</button>
+      <div class="item-type">${typeLabel(w.type)} · ${uitkomstBadge(w.uitkomst)}</div>
+      <div class="item-inhoud">
+        ${w.boer ? `<strong>${w.boer}</strong><br>` : ''}
+        ${w.locatie ? w.locatie + '<br>' : ''}
+        ${w.gewas ? '🌾 ' + w.gewas + (w.middel ? ' · 💧 ' + w.middel : '') + '<br>' : ''}
+        ${w.omschrijving || ''}
+      </div>
+      <div class="item-tijd">${w.tijd}</div>
+    </div>
+  `).join('');
+}
+
+function verwijderItem(id) {
+  if (!confirm('Waarneming verwijderen?')) return;
+  data.waarnemingen = data.waarnemingen.filter(w => w.id !== id);
+  sla();
+  renderDagItems();
+  updateTellers();
+  renderDagenLijst();
+}
+
+function typeLabel(t) {
+  return {spuit:'💧 Spuitcontrole', erf:'🏠 Erfcontrole', overig:'📝 Overige', surveillance:'👁 Waarneming'}[t] || t;
+}
+
+function uitkomstBadge(u) {
+  const map = {
+    akkoord: '<span class="badge badge-groen">Akkoord</span>',
+    overtreding: '<span class="badge badge-rood">Overtreding</span>',
+    aangetroffen: '<span class="badge badge-blauw">Aangetroffen</span>',
+    nader_onderzoek: '<span class="badge badge-oranje">Nader onderzoek</span>',
+    geen_toegang: '<span class="badge badge-oranje">Geen toegang</span>'
+  };
+  return map[u] || u;
+}
+
+// ===== OVERZICHT =====
+function updateTellers() {
+  const totDagen = data.dagen.filter(d => d.uren > 0 || d.spuit > 0 || d.erf > 0 || d.overig > 0).length;
+  const totUren = data.dagen.reduce((s,d) => s + (d.uren||0), 0);
+  const totKm = data.dagen.reduce((s,d) => s + (d.km||0), 0);
+  const totSpuit = data.dagen.reduce((s,d) => s + (d.spuit||0), 0);
+  const totErf = data.dagen.reduce((s,d) => s + (d.erf||0), 0);
+  const totOverig = data.dagen.reduce((s,d) => s + (d.overig||0), 0);
+  const totOvertredingen = data.waarnemingen.filter(w => w.uitkomst === 'overtreding').length;
+
+  document.getElementById('tot-dagen').textContent = totDagen;
+  document.getElementById('tot-uren').textContent = totUren.toFixed(1);
+  document.getElementById('tot-spuit').textContent = totSpuit;
+  document.getElementById('tot-erf').textContent = totErf;
+  document.getElementById('tot-overig').textContent = totOverig;
+  document.getElementById('tot-overtredingen').textContent = totOvertredingen;
+  document.getElementById('tot-km').textContent = totKm;
+}
+
+function renderDagenLijst() {
+  const el = document.getElementById('dagen-lijst');
+  const actieveDagen = data.dagen.filter(d => d.uren > 0 || d.spuit > 0 || d.erf > 0 || d.overig > 0 || d.notitie);
+  if (!actieveDagen.length) {
+    el.innerHTML = '<div class="leeg-tekst">Nog geen dagregistraties</div>';
+    return;
+  }
+  el.innerHTML = actieveDagen.map(dag => {
+    const items = data.waarnemingen.filter(w => w.datum === dag.datum);
+    const dagDatum = new Date(dag.datum).toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'});
+    return `
+      <div class="dag-blok">
+        <div class="dag-header">
+          <div class="dag-header-links">${dagDatum}</div>
+          <div class="dag-header-rechts">${dag.start || '--:--'} – ${dag.eind || '--:--'}</div>
+        </div>
+        <div class="dag-body">
+          <div class="dag-stats">
+            <div class="dag-stat"><div class="dag-stat-getal">${dag.uren||0}</div><div class="dag-stat-label">uren</div></div>
+            <div class="dag-stat"><div class="dag-stat-getal">${dag.km||0}</div><div class="dag-stat-label">km</div></div>
+            <div class="dag-stat"><div class="dag-stat-getal">${dag.spuit||0}</div><div class="dag-stat-label">spuit</div></div>
+            <div class="dag-stat"><div class="dag-stat-getal">${dag.erf||0}</div><div class="dag-stat-label">erf</div></div>
+            <div class="dag-stat"><div class="dag-stat-getal">${dag.overig||0}</div><div class="dag-stat-label">overig</div></div>
+          </div>
+          ${dag.weer ? `<div style="font-size:12px;color:var(--grijs);margin-bottom:6px;">🌤 ${dag.weer}</div>` : ''}
+          ${dag.notitie ? `<div style="font-size:13px;margin-bottom:8px;">${dag.notitie}</div>` : ''}
+          ${items.length ? items.map(w => `
+            <div class="item ${w.type}" style="margin-bottom:6px;">
+              <div class="item-type">${typeLabel(w.type)} · ${uitkomstBadge(w.uitkomst)}</div>
+              <div class="item-inhoud">${w.boer ? '<strong>'+w.boer+'</strong> · ' : ''}${w.locatie || ''}${w.omschrijving ? ' — '+w.omschrijving : ''}</div>
+              <div class="item-tijd">${w.tijd}</div>
+            </div>
+          `).join('') : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== BOEREN =====
+function routeUrl(boer) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(boer.adres + ', ' + boer.postcode + ' ' + boer.plaats)}`;
+}
+
+function renderBoerenLijst(lijst) {
+  const el = document.getElementById('boeren-lijst');
+  el.innerHTML = lijst.map(b => {
+    const controles = data.waarnemingen.filter(w => w.boer === b.naam);
+    const heeftOvertreding = controles.some(w => w.uitkomst === 'overtreding');
+    const heeftControle = controles.length > 0;
+    const dot = heeftOvertreding ? 'dot-rood' : heeftControle ? 'dot-groen' : 'dot-grijs';
+    return `
+      <div class="boer-item">
+        <div class="status-dot ${dot}" style="flex-shrink:0;"></div>
+        <div style="flex:1;cursor:pointer;" onclick="openBoerModal('${b.naam.replace(/'/g,"\\'")}')">
+          <div class="boer-naam">${b.naam}</div>
+          <div class="boer-adres">${b.adres}, ${b.postcode} ${b.plaats}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${controles.length > 0 ? `<div style="font-size:11px;color:var(--grijs);">${controles.length}×</div>` : ''}
+          <button class="route-knop" onclick="window.open('${routeUrl(b)}','_blank')">🗺 Route</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterBoeren() {
+  const q = document.getElementById('boer-zoek').value.toLowerCase();
+  const gefilterd = BOEREN.filter(b =>
+    b.naam.toLowerCase().includes(q) ||
+    b.adres.toLowerCase().includes(q) ||
+    b.plaats.toLowerCase().includes(q)
+  );
+  renderBoerenLijst(gefilterd);
+}
+
+function openBoerModal(naam) {
+  const boer = BOEREN.find(b => b.naam === naam);
+  const controles = data.waarnemingen.filter(w => w.boer === naam);
+  document.getElementById('modal-naam').textContent = naam;
+  document.getElementById('modal-inhoud').innerHTML = `
+    <div style="font-size:13px;color:var(--grijs);margin-bottom:10px;">
+      📍 ${boer.adres}, ${boer.postcode} ${boer.plaats}
+    </div>
+    <button class="route-knop knop-vol" style="margin-bottom:12px;width:100%;padding:10px;" onclick="window.open('${routeUrl(boer)}','_blank')">🗺 Open routebeschrijving in Google Maps</button>
+    <hr class="scheidslijn">
+    <div style="font-size:12px;font-weight:600;color:var(--grijs);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">
+      Controles (${controles.length})
+    </div>
+    ${controles.length ? controles.map(w => `
+      <div class="item ${w.type}" style="margin-bottom:8px;">
+        <div class="item-type">${typeLabel(w.type)} · ${uitkomstBadge(w.uitkomst)}</div>
+        <div class="item-inhoud">${w.datum} ${w.tijd}${w.gewas ? ' · 🌾 '+w.gewas : ''}${w.middel ? ' · 💧 '+w.middel : ''}<br>${w.omschrijving||''}</div>
+      </div>
+    `).join('') : '<div class="leeg-tekst">Nog niet gecontroleerd</div>'}
+    <button class="knop knop-primair knop-vol" style="margin-top:12px;" onclick="sluitModal();toonPagina('loggen');document.getElementById('log-boer').value='${naam.replace(/'/g,"\\'")}'" >➕ Registratie toevoegen</button>
+  `;
+  document.getElementById('boer-modal').classList.add('open');
+}
+
+function sluitModal() {
+  document.getElementById('boer-modal').classList.remove('open');
+}
+
+// ===== RAPPORT =====
+function genereerRapport() {
+  const van = document.getElementById('rap-van').value;
+  const tot = document.getElementById('rap-tot').value;
+
+  const dagen = data.dagen.filter(d => d.datum >= van && d.datum <= tot);
+  const waarnemingen = data.waarnemingen.filter(w => w.datum >= van && w.datum <= tot);
+
+  const totUren = dagen.reduce((s,d) => s+(d.uren||0), 0);
+  const totSpuit = dagen.reduce((s,d) => s+(d.spuit||0), 0);
+  const totErf = dagen.reduce((s,d) => s+(d.erf||0), 0);
+  const totOverig = dagen.reduce((s,d) => s+(d.overig||0), 0);
+  const overtredingen = waarnemingen.filter(w => w.uitkomst === 'overtreding');
+  const actieveDagen = dagen.filter(d => d.uren>0||d.spuit>0||d.erf>0||d.overig>0);
+
+  const vanFmt = new Date(van).toLocaleDateString('nl-NL', {day:'numeric',month:'long',year:'numeric'});
+  const totFmt = new Date(tot).toLocaleDateString('nl-NL', {day:'numeric',month:'long',year:'numeric'});
+
+  document.getElementById('rapport-inhoud').innerHTML = `
+    <div class="kaart">
+      <div class="kaart-titel">📋 Rapportage GBM Gebiedsgericht Handhaven</div>
+      <div class="rapport-sectie">
+        <h3>Algemeen</h3>
+        <div class="rapport-rij"><span>Handhaver</span><span class="rapport-waarde">Remko Meijer</span></div>
+        <div class="rapport-rij"><span>Waterschap</span><span class="rapport-waarde">Noorderzijlvest</span></div>
+        <div class="rapport-rij"><span>Gebied</span><span class="rapport-waarde">Eemshaven e.o.</span></div>
+        <div class="rapport-rij"><span>Periode</span><span class="rapport-waarde">${vanFmt} – ${totFmt}</span></div>
+        <div class="rapport-rij"><span>Gegenereerd op</span><span class="rapport-waarde">${new Date().toLocaleDateString('nl-NL')}</span></div>
+      </div>
+      <hr class="scheidslijn">
+      <div class="rapport-sectie">
+        <h3>Samenvatting</h3>
+        <div class="rapport-rij"><span>Dagen in gebied</span><span class="rapport-waarde">${actieveDagen.length}</span></div>
+        <div class="rapport-rij"><span>Totaal uren surveillance</span><span class="rapport-waarde">${totUren.toFixed(1)} uur</span></div>
+        <div class="rapport-rij"><span>Spuitcontroles</span><span class="rapport-waarde">${totSpuit}</span></div>
+        <div class="rapport-rij"><span>Erfcontroles</span><span class="rapport-waarde">${totErf}</span></div>
+        <div class="rapport-rij"><span>Overige controles</span><span class="rapport-waarde">${totOverig}</span></div>
+        <div class="rapport-rij"><span>Totaal controles</span><span class="rapport-waarde">${totSpuit+totErf+totOverig}</span></div>
+        <div class="rapport-rij"><span>Totaal km gereden</span><span class="rapport-waarde">${dagen.reduce((s,d)=>s+(d.km||0),0)} km</span></div>
+        <div class="rapport-rij"><span>Overtredingen geconstateerd</span><span class="rapport-waarde">${overtredingen.length}</span></div>
+      </div>
+      ${overtredingen.length ? `
+      <hr class="scheidslijn">
+      <div class="rapport-sectie">
+        <h3>Overtredingen</h3>
+        ${overtredingen.map(w => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--rand);font-size:13px;">
+            <strong>${w.datum} ${w.tijd}</strong> — ${typeLabel(w.type)}<br>
+            ${w.boer ? '👤 '+w.boer+'<br>' : ''}
+            ${w.locatie ? '📍 '+w.locatie+'<br>' : ''}
+            ${w.gewas ? '🌾 '+w.gewas+(w.middel?' · 💧 '+w.middel:'')+'<br>' : ''}
+            ${w.omschrijving || ''}
+          </div>
+        `).join('')}
+      </div>` : ''}
+      <hr class="scheidslijn">
+      <div class="rapport-sectie">
+        <h3>Dagoverzicht</h3>
+        ${actieveDagen.length ? actieveDagen.map(dag => {
+          const dagW = waarnemingen.filter(w => w.datum === dag.datum);
+          return `
+            <div style="margin-bottom:12px;">
+              <div style="font-weight:600;font-size:13px;margin-bottom:4px;">
+                ${new Date(dag.datum).toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})}
+                ${dag.start ? '· '+dag.start+' – '+(dag.eind||'?') : ''}
+              </div>
+              <div style="font-size:12px;color:var(--grijs);margin-bottom:4px;">
+                ${dag.uren||0} uur · ${dag.km||0} km · ${dag.spuit||0} spuit · ${dag.erf||0} erf · ${dag.overig||0} overig
+                ${dag.weer ? '· '+dag.weer : ''}
+              </div>
+              ${dag.notitie ? `<div style="font-size:12px;margin-bottom:4px;font-style:italic;">${dag.notitie}</div>` : ''}
+              ${dagW.map(w => `<div style="font-size:12px;padding:3px 0;border-left:3px solid var(--rand);padding-left:8px;margin-bottom:3px;">
+                ${w.tijd} · ${typeLabel(w.type)} · ${w.uitkomst}${w.boer?' · '+w.boer:''}${w.omschrijving?' — '+w.omschrijving:''}
+              </div>`).join('')}
+            </div>
+          `;
+        }).join('') : '<div class="leeg-tekst">Geen data in deze periode</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function printRapport() {
+  genereerRapport();
+  setTimeout(() => window.print(), 300);
+}
+
+// ===== NAVIGATIE =====
+function toonPagina(naam) {
+  document.querySelectorAll('.pagina').forEach(p => p.classList.remove('actief'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('actief'));
+  document.getElementById('pagina-' + naam).classList.add('actief');
+  document.querySelectorAll('.tab')[['dag','loggen','overzicht','boeren','rapport'].indexOf(naam)].classList.add('actief');
+
+  if (naam === 'overzicht') { updateTellers(); renderDagenLijst(); }
+  if (naam === 'boeren') renderBoerenLijst(BOEREN);
+  if (naam === 'dag') { renderDagItems(); updateDagTellers(); }
+}
+
+
+// ===== GPS KM TRACKER =====
+let gpsWatcher = null;
+let gpsLaatste = null;
+let gpsKmDag = 0;
+let gpsActief = false;
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function startGPS() {
+  if (!navigator.geolocation) {
+    document.getElementById('gps-status').textContent = '❌ GPS niet beschikbaar op dit apparaat';
+    return;
+  }
+  gpsActief = true;
+  gpsLaatste = null;
+  
+  // Laad bestaande km voor vandaag
+  const datum = document.getElementById('dag-datum').value;
+  const dag = getDag(datum);
+  gpsKmDag = dag ? (dag.km || 0) : 0;
+
+  document.getElementById('gps-start-knop').style.display = 'none';
+  document.getElementById('gps-stop-knop').style.display = 'inline-flex';
+  document.getElementById('gps-status').innerHTML = '🟢 <strong>Tracking actief</strong> — rijdt...';
+
+  gpsWatcher = navigator.geolocation.watchPosition(
+    function(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const snelheid = pos.coords.speed || 0; // m/s
+
+      if (gpsLaatste && snelheid > 1) { // alleen tellen als je echt rijdt (>3.6 km/h)
+        const afstand = haversine(gpsLaatste.lat, gpsLaatste.lon, lat, lon);
+        if (afstand > 0.01 && afstand < 2) { // min 10m, max 2km per update (filter GPS-fouten)
+          gpsKmDag += afstand;
+          slaGPSkm();
+        }
+      }
+      gpsLaatste = {lat, lon};
+      document.getElementById('gps-status').innerHTML = 
+        '🟢 <strong>Tracking actief</strong> — ' + gpsKmDag.toFixed(1) + ' km gereden';
+    },
+    function(err) {
+      document.getElementById('gps-status').textContent = '⚠️ GPS fout: ' + err.message;
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+  );
+}
+
+function stopGPS() {
+  if (gpsWatcher) navigator.geolocation.clearWatch(gpsWatcher);
+  gpsActief = false;
+  gpsWatcher = null;
+  document.getElementById('gps-start-knop').style.display = 'inline-flex';
+  document.getElementById('gps-stop-knop').style.display = 'none';
+  document.getElementById('gps-status').innerHTML = 
+    '⏹ Gestopt — <strong>' + gpsKmDag.toFixed(1) + ' km</strong> opgeslagen';
+  slaGPSkm();
+}
+
+function kmHandmatig() {
+  const val = parseFloat(document.getElementById('dag-km').value) || 0;
+  gpsKmDag = val;
+  const datum = document.getElementById('dag-datum').value;
+  const dag = getOfMaakDag(datum);
+  dag.km = val;
+  document.getElementById('tel-km').textContent = val;
+  sla();
+  updateTellers();
+}
+
+function slaGPSkm() {
+  const datum = document.getElementById('dag-datum').value;
+  const dag = getOfMaakDag(datum);
+  dag.km = Math.round(gpsKmDag * 10) / 10;
+  document.getElementById('dag-km').value = dag.km;
+  document.getElementById('tel-km').textContent = dag.km;
+  sla();
+  updateTellers();
+}
+
+function resetGPSdag() {
+  if (!confirm('GPS km voor vandaag resetten naar 0?')) return;
+  gpsKmDag = 0;
+  const datum = document.getElementById('dag-datum').value;
+  const dag = getOfMaakDag(datum);
+  dag.km = 0;
+  document.getElementById('dag-km').value = '';
+  document.getElementById('tel-km').textContent = 0;
+  document.getElementById('gps-status').textContent = 'Tracker staat uit';
+  sla();
+  updateTellers();
+}
+
+// Herstel GPS km bij laden dag
+const _origLaad = laadDagFormulier;
+
+// ===== START =====
+init();
+</script>
+
+<style>
+@media print {
+  header, .tabs, #pagina-dag, #pagina-loggen, #pagina-overzicht, #pagina-boeren,
+  .kaart:has(button.knop-accent), .kaart:has(input[id="rap-van"]) { display: none !important; }
+  #pagina-rapport { display: block !important; }
+  .kaart { box-shadow: none; border: 1px solid #ccc; }
+}
+</style>
+</body>
+</html>
