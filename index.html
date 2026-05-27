@@ -638,15 +638,16 @@
       <div class="veld-groep">
         <label>Type</label>
         <select id="log-type" onchange="typeGewijzigd()">
+          <option value="surveillance">👁 Surveillance</option>
           <option value="spuit">💧 Spuitcontrole</option>
           <option value="erf">🏠 Erfcontrole</option>
           <option value="overig">📝 Overige controle</option>
-          <option value="surveillance">👁 Waarneming</option>
         </select>
       </div>
-      <div class="veld-groep">
+      <div class="veld-groep" id="veld-uitkomst">
         <label>Uitkomst</label>
         <select id="log-uitkomst">
+          <option value="uitgevoerd">✔️ Uitgevoerd</option>
           <option value="akkoord">✅ Akkoord</option>
           <option value="overtreding">❌ Overtreding</option>
           <option value="aangetroffen">👁 Aangetroffen</option>
@@ -666,16 +667,35 @@
       </div>
     </div>
 
+    <div class="veld-groep" style="margin-bottom:10px;display:none;" id="veld-uren">
+      <label>Uren surveillance</label>
+      <input type="number" id="log-uren" placeholder="bijv. 2.5" step="0.5" min="0">
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:10px;" id="veld-perceel-zoek">
+      <label>Zoek op perceelcode</label>
+      <input type="text" id="log-perceel-zoek" placeholder="Type perceelcode (bijv. UHZ02I132)..." oninput="zoekOpPerceel(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <div id="perceel-zoek-resultaat" style="display:none;background:white;border:1.5px solid var(--lichtblauw);border-radius:7px;margin-top:4px;overflow:hidden;"></div>
+    </div>
+
     <div class="veld-groep" style="margin-bottom:10px;" id="veld-boer">
       <label>Betrokken boer / eigenaar</label>
-      <select id="log-boer">
+      <select id="log-boer" onchange="boerGewijzigd()">
         <option value="">— geen / onbekend —</option>
       </select>
     </div>
 
     <div class="veld-groep" style="margin-bottom:10px;" id="veld-locatie">
-      <label>Locatie / perceel</label>
-      <input type="text" id="log-locatie" placeholder="Adres, perceel of omschrijving...">
+      <label>Locatie (adres / erf)</label>
+      <input type="text" id="log-locatie" placeholder="Adres of omschrijving van de locatie...">
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:10px;" id="veld-perceel">
+      <label>Perceel</label>
+      <select id="log-perceel-select" onchange="perceelSelectGewijzigd()" style="margin-bottom:6px;">
+        <option value="">— selecteer perceel —</option>
+      </select>
+      <input type="text" id="log-perceel-vrij" placeholder="Of typ perceelcode handmatig...">
     </div>
 
     <div class="veld-groep" style="margin-bottom:10px;" id="veld-gewas">
@@ -699,9 +719,14 @@
       <input type="text" id="log-middel" placeholder="Naam middel of type...">
     </div>
 
-    <div class="veld-groep" style="margin-bottom:12px;">
+    <div class="veld-groep" style="margin-bottom:12px;" id="veld-omschrijving">
       <label>Omschrijving / opmerking</label>
       <textarea id="log-omschrijving" placeholder="Wat heb je waargenomen of gecontroleerd?"></textarea>
+    </div>
+
+    <div class="veld-groep" style="margin-bottom:12px;display:none;" id="veld-actie">
+      <label>Actie uitgevoerd (optioneel)</label>
+      <textarea id="log-actie" placeholder="Welke actie heb je ondernomen?"></textarea>
     </div>
 
     <button class="knop knop-groen knop-vol" onclick="slaWaarnemingOp()">💾 Opslaan</button>
@@ -825,6 +850,9 @@ const BOEREN = [
   {naam:"gemeente Het Hogeland", adres:"Postbus 26", postcode:"9980 AA", plaats:"Uithuizen"}
 ];
 
+
+const PERCELEN = {"A. Dijksterhuis": ["UHZ02I132", "UHZ02I133"], "A.A. Elzes": ["UHZ02I173", "UHZ02I174", "UHZ02I175"], "A.B. Ockels": ["UHZ02I262"], "B.E. Oosterhuis": ["UHZ02I197", "UHZ02I198", "UHZ02I199", "UHZ02I211"], "C.J.E. Dijksterhuis": ["UHZ02I130", "UHZ02I146"], "C.P. Meeuwes": ["UHZ02I200", "UHZ02I201"], "E. Spa": ["UHZ02I135"], "Enexis Netbeheer B.V.": ["UHZ02I220", "UHZ02I463", "UHZ02I582"], "gemeente Het Hogeland": ["UHZ02H73"], "GoDo B.V.": ["UHZ02I544"], "Groningen Seaports N.V.": ["UHZ02A3148"], "H. Doornbos": ["UHZ02I204"], "H.A.B. Wiertsema": ["UHZ02I248"], "J. Doornbos": ["UHZ02I205"], "J. Noorloos": ["UHZ02H109", "UHZ02H130", "UHZ02H131", "UHZ02H132", "UHZ02H225", "UHZ02H226", "UHZ02H227", "UHZ02H228"], "J.A. Bos B.V.": ["UHZ02H107", "UHZ02H128", "UHZ02H129", "UHZ02H181", "UHZ02H182", "UHZ02H188"], "J.A. Goense": ["UHZ02I166", "UHZ02I167", "UHZ02I168", "UHZ02I170"], "J.G. Woltjer": ["UHZ02I261"], "J.J. Klein": ["UHZ02I150", "UHZ02I506", "UHZ02I507"], "J.M.N. van Mastwijk": ["UHZ02H137", "UHZ02H138", "UHZ02H139", "UHZ02H183", "UHZ02H190", "UHZ02I134", "UHZ02I147", "UHZ02I148", "UHZ02I249", "UHZ02I250", "UHZ02I251", "UHZ02I545"], "J.R. Kolhorn": ["UHZ02I171", "UHZ02I172", "UHZ02I227"], "J.U. Berghuis": ["UHZ02H111", "UHZ02H112", "UHZ02H113", "UHZ02H134", "UHZ02H135", "UHZ02H219", "UHZ02H220", "UHZ02H85", "UHZ02H86", "UHZ02H87", "UHZ02I151", "UHZ02I152", "UHZ02I153", "UHZ02I156", "UHZ02I191", "UHZ02I194", "UHZ02I202", "UHZ02I252", "UHZ02I253", "UHZ02I255", "UHZ02I505"], "K.J. Klein": ["UHZ02H67", "UHZ02H70", "UHZ02I165", "UHZ02I225", "UHZ02I226", "UHZ02I467", "UHZ02I469", "UHZ02I510", "UHZ02I513"], "K.J. Kolhorn": ["UHZ02I222"], "R.B. Rijzebol": ["UHZ02I509"], "R.J. Groenveld": ["UHZ02I511"], "Stichting Poldermolencomplex De Goliath": ["UHZ02H71", "UHZ02H72"], "T.L.D. Klein": ["UHZ02I512", "UHZ02I514", "UHZ02I515"], "U. Doornbos": ["UHZ02I209", "UHZ02I210"], "V. Veening": ["UHZ02I217", "UHZ02I218", "UHZ02I221", "UHZ02I230", "UHZ02I562"], "W.C.J.M. Klijn": ["UHZ02I546"], "W.J. Dekker": ["UHZ02I206", "UHZ02I207"], "W.J. Klijn": ["UHZ02H68", "UHZ02H69", "UHZ02I192", "UHZ02I193", "UHZ02I195", "UHZ02I196", "UHZ02I213", "UHZ02I477", "UHZ02I516", "UHZ02I517"], "W.J. Oosterhuis": ["UHZ02I203", "UHZ02I212"], "Waterschap Noorderzijlvest": ["UHZ02H77", "UHZ02I158", "UHZ02I159", "UHZ02I224", "UHZ02I232", "UHZ02I233", "UHZ02I234", "UHZ02I236", "UHZ02I237", "UHZ02I257", "UHZ02I259", "UHZ02I466", "UHZ02I468"]};
+
 // State
 let data = JSON.parse(localStorage.getItem('gbm_data') || '{"dagen":[],"waarnemingen":[]}');
 let huidigeDatum = vandaag();
@@ -864,6 +892,8 @@ function init() {
   document.getElementById('dag-datum').value = v;
   document.getElementById('log-datum').value = v;
   document.getElementById('log-tijd').value = tijdNu();
+  typeGewijzigd();
+  typeGewijzigd();
 
   // Laad bestaande dagdata
   laadDagFormulier(v);
@@ -952,8 +982,121 @@ function updateDagTellers() {
 }
 
 // ===== LOGGEN =====
+
+
+function zoekOpPerceel(val) {
+  const res = document.getElementById('perceel-zoek-resultaat');
+  if (!val || val.length < 3) { res.style.display = 'none'; return; }
+  const zoek = val.toUpperCase();
+  const gevonden = [];
+  for (const [naam, codes] of Object.entries(PERCELEN)) {
+    codes.forEach(code => {
+      if (code.toUpperCase().includes(zoek)) {
+        gevonden.push({naam, code});
+      }
+    });
+  }
+  if (!gevonden.length) {
+    res.style.display = 'block';
+    res.innerHTML = '<div style="padding:10px;font-size:13px;color:var(--grijs);">Geen perceel gevonden</div>';
+    return;
+  }
+  res.style.display = 'block';
+  res.innerHTML = gevonden.slice(0, 8).map(g => `
+    <div onclick="kiesPerceel('${g.naam.replace(/'/g,"\\'")}','${g.code}')"
+         style="padding:10px 12px;border-bottom:1px solid var(--rand);cursor:pointer;font-size:13px;"
+         onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='white'">
+      <strong>${g.code}</strong><br>
+      <span style="color:var(--grijs);font-size:12px;">${g.naam}</span>
+    </div>
+  `).join('');
+}
+
+function kiesPerceel(naam, code) {
+  // Vul perceel in
+  document.getElementById('log-perceel-vrij').value = code;
+  document.getElementById('log-perceel-zoek').value = code;
+  document.getElementById('perceel-zoek-resultaat').style.display = 'none';
+
+  // Vul boer in
+  const sel = document.getElementById('log-boer');
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === naam) {
+      sel.selectedIndex = i;
+      break;
+    }
+  }
+  boerGewijzigd();
+
+  // Zet perceel dropdown op de gevonden code
+  const pSel = document.getElementById('log-perceel-select');
+  for (let i = 0; i < pSel.options.length; i++) {
+    if (pSel.options[i].value === code) {
+      pSel.selectedIndex = i;
+      break;
+    }
+  }
+}
+
+function boerGewijzigd() {
+  const boer = document.getElementById('log-boer').value;
+  const sel = document.getElementById('log-perceel-select');
+  sel.innerHTML = '<option value="">— selecteer perceel —</option>';
+  document.getElementById('log-perceel-vrij').value = '';
+  document.getElementById('log-actie').value = '';
+  document.getElementById('log-perceel-zoek').value = '';
+  document.getElementById('perceel-zoek-resultaat').style.display = 'none';
+  if (boer && PERCELEN[boer]) {
+    PERCELEN[boer].forEach(code => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = code;
+      sel.appendChild(opt);
+    });
+    sel.style.display = 'block';
+  } else {
+    sel.style.display = 'none';
+  }
+}
+
+function perceelSelectGewijzigd() {
+  const val = document.getElementById('log-perceel-select').value;
+  if (val) document.getElementById('log-perceel-vrij').value = val;
+}
+
 function typeGewijzigd() {
-  // Altijd zichtbaar voor nu
+  const type = document.getElementById('log-type').value;
+  const isSurveillance = type === 'surveillance';
+  const isSpuit = type === 'spuit';
+
+  // Surveillance: alleen uren, waarneming en actie
+  const verbergBijSurveillance = ['veld-uitkomst','veld-boer','veld-perceel','veld-locatie','veld-gewas','veld-middel'];
+  verbergBijSurveillance.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isSurveillance ? 'none' : 'block';
+  });
+
+  // Uren: alleen bij surveillance
+  document.getElementById('veld-uren').style.display = isSurveillance ? 'block' : 'none';
+
+  // Actie: alleen bij surveillance
+  document.getElementById('veld-actie').style.display = isSurveillance ? 'block' : 'none';
+
+  // Gewas: alleen bij spuit en erf
+  if (!isSurveillance) {
+    document.getElementById('veld-gewas').style.display = (isSpuit || type === 'erf') ? 'block' : 'none';
+    // Middel: alleen bij spuit
+    document.getElementById('veld-middel').style.display = isSpuit ? 'block' : 'none';
+  }
+
+  // Omschrijving label aanpassen
+  const omLabel = document.querySelector('#veld-omschrijving label');
+  if (omLabel) omLabel.textContent = isSurveillance ? 'Waarneming (wat heb je gezien?)' : 'Omschrijving / opmerking';
+
+  // Bij surveillance: uitkomst automatisch uitgevoerd
+  if (isSurveillance) {
+    document.getElementById('log-uitkomst').value = 'uitgevoerd';
+  }
 }
 
 function slaWaarnemingOp() {
@@ -965,9 +1108,11 @@ function slaWaarnemingOp() {
     uitkomst: document.getElementById('log-uitkomst').value,
     boer: document.getElementById('log-boer').value,
     locatie: document.getElementById('log-locatie').value,
+    perceel: document.getElementById('log-perceel-vrij').value,
     gewas: document.getElementById('log-gewas').value,
     middel: document.getElementById('log-middel').value,
-    omschrijving: document.getElementById('log-omschrijving').value
+    omschrijving: document.getElementById('log-omschrijving').value,
+    actie: document.getElementById('log-actie').value
   };
 
   data.waarnemingen.push(w);
@@ -987,11 +1132,17 @@ function slaWaarnemingOp() {
 
   // Reset form
   document.getElementById('log-locatie').value = '';
+  document.getElementById('log-perceel-vrij').value = '';
+  document.getElementById('log-actie').value = '';
+  document.getElementById('log-perceel-zoek').value = '';
+  document.getElementById('perceel-zoek-resultaat').style.display = 'none';
+  document.getElementById('log-perceel-select').innerHTML = '<option value="">— selecteer perceel —</option>';
   document.getElementById('log-middel').value = '';
   document.getElementById('log-omschrijving').value = '';
   document.getElementById('log-boer').value = '';
   document.getElementById('log-gewas').value = '';
   document.getElementById('log-tijd').value = tijdNu();
+  typeGewijzigd();
 
   toonMelding('melding-opgeslagen');
 }
@@ -1017,9 +1168,9 @@ function renderDagItems() {
       <div class="item-type">${typeLabel(w.type)} · ${uitkomstBadge(w.uitkomst)}</div>
       <div class="item-inhoud">
         ${w.boer ? `<strong>${w.boer}</strong><br>` : ''}
-        ${w.locatie ? w.locatie + '<br>' : ''}
+        ${w.locatie ? '📍 ' + w.locatie + '<br>' : ''}${w.perceel ? '🗂 Perceel: ' + w.perceel + '<br>' : ''}
         ${w.gewas ? '🌾 ' + w.gewas + (w.middel ? ' · 💧 ' + w.middel : '') + '<br>' : ''}
-        ${w.omschrijving || ''}
+        ${w.omschrijving || ''}${w.actie ? '<br><em>📋 Actie: '+w.actie+'</em>' : ''}
       </div>
       <div class="item-tijd">${w.tijd}</div>
     </div>
@@ -1036,11 +1187,12 @@ function verwijderItem(id) {
 }
 
 function typeLabel(t) {
-  return {spuit:'💧 Spuitcontrole', erf:'🏠 Erfcontrole', overig:'📝 Overige', surveillance:'👁 Waarneming'}[t] || t;
+  return {spuit:'💧 Spuitcontrole', erf:'🏠 Erfcontrole', overig:'📝 Overige', surveillance:'👁 Surveillance'}[t] || t;
 }
 
 function uitkomstBadge(u) {
   const map = {
+    uitgevoerd: '<span class="badge badge-blauw">Uitgevoerd</span>',
     akkoord: '<span class="badge badge-groen">Akkoord</span>',
     overtreding: '<span class="badge badge-rood">Overtreding</span>',
     aangetroffen: '<span class="badge badge-blauw">Aangetroffen</span>',
@@ -1225,7 +1377,7 @@ function genereerRapport() {
             ${w.boer ? '👤 '+w.boer+'<br>' : ''}
             ${w.locatie ? '📍 '+w.locatie+'<br>' : ''}
             ${w.gewas ? '🌾 '+w.gewas+(w.middel?' · 💧 '+w.middel:'')+'<br>' : ''}
-            ${w.omschrijving || ''}
+            ${w.omschrijving || ''}${w.actie ? '<br><em>📋 Actie: '+w.actie+'</em>' : ''}
           </div>
         `).join('')}
       </div>` : ''}
@@ -1246,7 +1398,7 @@ function genereerRapport() {
               </div>
               ${dag.notitie ? `<div style="font-size:12px;margin-bottom:4px;font-style:italic;">${dag.notitie}</div>` : ''}
               ${dagW.map(w => `<div style="font-size:12px;padding:3px 0;border-left:3px solid var(--rand);padding-left:8px;margin-bottom:3px;">
-                ${w.tijd} · ${typeLabel(w.type)} · ${w.uitkomst}${w.boer?' · '+w.boer:''}${w.omschrijving?' — '+w.omschrijving:''}
+                ${w.tijd} · ${typeLabel(w.type)} · ${w.uitkomst}${w.boer?' · '+w.boer:''}${w.perceel?' · 🗂 '+w.perceel:''}${w.omschrijving?' — '+w.omschrijving:''}
               </div>`).join('')}
             </div>
           `;
