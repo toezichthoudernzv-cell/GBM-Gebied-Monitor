@@ -958,6 +958,8 @@ function slaaDagOp() {
   dag.notitie = document.getElementById('dag-notitie').value;
   sla();
   updateDagTellers();
+  updateTellers();
+  renderDagenLijst();
   toonMelding('melding-opgeslagen');
 }
 
@@ -1177,6 +1179,38 @@ function renderDagItems() {
   `).join('');
 }
 
+function verwijderItemOverzicht(id) {
+  if (!confirm('Deze waarneming verwijderen?')) return;
+  const w = data.waarnemingen.find(w => w.id === id);
+  if (w) {
+    // Teller omlaag bij het juiste type
+    const dag = getDag(w.datum);
+    if (dag) {
+      if (w.type === 'spuit') dag.spuit = Math.max(0, (dag.spuit||0) - 1);
+      else if (w.type === 'erf') dag.erf = Math.max(0, (dag.erf||0) - 1);
+      else if (w.type === 'overig') dag.overig = Math.max(0, (dag.overig||0) - 1);
+    }
+  }
+  data.waarnemingen = data.waarnemingen.filter(w => w.id !== id);
+  sla();
+  updateTellers();
+  renderDagenLijst();
+  updateDagTellers();
+  renderDagItems();
+}
+
+function verwijderDag(datum) {
+  const dagDatum = new Date(datum).toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'});
+  if (!confirm('Dag ' + dagDatum + ' verwijderen?\nAlle waarnemingen van deze dag worden ook verwijderd.')) return;
+  data.dagen = data.dagen.filter(d => d.datum !== datum);
+  data.waarnemingen = data.waarnemingen.filter(w => w.datum !== datum);
+  sla();
+  updateTellers();
+  renderDagenLijst();
+  updateDagTellers();
+  renderDagItems();
+}
+
 function verwijderItem(id) {
   if (!confirm('Waarneming verwijderen?')) return;
   data.waarnemingen = data.waarnemingen.filter(w => w.id !== id);
@@ -1233,9 +1267,12 @@ function renderDagenLijst() {
     const dagDatum = new Date(dag.datum).toLocaleDateString('nl-NL', {weekday:'long', day:'numeric', month:'long'});
     return `
       <div class="dag-blok">
-        <div class="dag-header">
+        <div class="dag-header" style="cursor:default;">
           <div class="dag-header-links">${dagDatum}</div>
-          <div class="dag-header-rechts">${dag.start || '--:--'} – ${dag.eind || '--:--'}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="dag-header-rechts">${dag.start || '--:--'} – ${dag.eind || '--:--'}</div>
+            <button onclick="verwijderDag('${dag.datum}')" style="background:rgba(255,255,255,0.15);border:none;border-radius:5px;color:white;padding:3px 8px;cursor:pointer;font-size:13px;" title="Dag verwijderen">🗑</button>
+          </div>
         </div>
         <div class="dag-body">
           <div class="dag-stats">
@@ -1249,6 +1286,7 @@ function renderDagenLijst() {
           ${dag.notitie ? `<div style="font-size:13px;margin-bottom:8px;">${dag.notitie}</div>` : ''}
           ${items.length ? items.map(w => `
             <div class="item ${w.type}" style="margin-bottom:6px;">
+              <button class="item-verwijder" onclick="verwijderItemOverzicht(${w.id})">✕</button>
               <div class="item-type">${typeLabel(w.type)} · ${uitkomstBadge(w.uitkomst)}</div>
               <div class="item-inhoud">${w.boer ? '<strong>'+w.boer+'</strong> · ' : ''}${w.locatie || ''}${w.omschrijving ? ' — '+w.omschrijving : ''}</div>
               <div class="item-tijd">${w.tijd}</div>
